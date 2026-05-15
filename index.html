@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>动物园数字孪生交互系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; overflow: hidden; background: #000; }
+        #canvas-container { width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; }
+
+        .title-bar {
+            position: fixed; top: 20px; left: 24px; z-index: 100;
+            background: linear-gradient(135deg, rgba(20, 20, 35, 0.9), rgba(40, 30, 50, 0.85));
+            padding: 16px 28px; border-radius: 12px; border: 1px solid rgba(255, 215, 0, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        .title-bar h1 { color: #FFD700; font-size: 22px; font-weight: 600; letter-spacing: 1px; }
+        .title-bar p { color: #AAAAAA; font-size: 12px; margin-top: 4px; }
+
+        .info-panel {
+            position: fixed; top: 190px; right: 24px; width: 300px;
+            background: linear-gradient(160deg, rgba(20, 20, 35, 0.92), rgba(30, 25, 45, 0.88));
+            border-radius: 14px; border: 1px solid rgba(255, 215, 0, 0.2);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5); z-index: 100;
+            transform: translateX(340px); opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .info-panel.active { transform: translateX(0); opacity: 1; }
+        .info-panel-header {
+            background: linear-gradient(90deg, rgba(255, 215, 0, 0.15), transparent);
+            padding: 18px 22px; border-bottom: 1px solid rgba(255, 215, 0, 0.15);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .info-panel-header h2 { color: #FFD700; font-size: 20px; }
+        .close-btn {
+            width: 32px; height: 32px; background: rgba(255, 100, 100, 0.2);
+            border: none; border-radius: 8px; color: #ff6b6b; font-size: 18px;
+            cursor: pointer;
+        }
+        .close-btn:hover { background: rgba(255, 100, 100, 0.4); transform: scale(1.1); }
+        .info-panel-content { padding: 20px; }
+        .animal-image {
+            width: 100%; height: 140px;
+            background: linear-gradient(135deg, #2a2a3e, #1a1a2e);
+            border-radius: 10px; margin-bottom: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 48px; border: 1px solid rgba(255, 215, 0, 0.1);
+        }
+        .info-item { margin-bottom: 14px; }
+        .info-item label { color: #888; font-size: 12px; display: block; margin-bottom: 4px; }
+        .info-item span { color: #fff; font-size: 15px; line-height: 1.5; }
+
+        .control-panel {
+            position: fixed; top: 50%; left: 28px; transform: translateY(-50%);
+            display: flex; flex-direction: column; gap: 8px;
+            background: linear-gradient(135deg, rgba(20, 20, 35, 0.92), rgba(35, 28, 50, 0.88));
+            padding: 20px 14px; border-radius: 50px; border: 1px solid rgba(255, 215, 0, 0.25);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); z-index: 100;
+        }
+        .control-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .control-label { color: #AAAAAA; font-size: 11px; text-align: center; white-space: nowrap; }
+        .control-btn {
+            width: 48px; height: 48px;
+            background: linear-gradient(145deg, rgba(60, 50, 80), rgba(40, 35, 55));
+            border: 2px solid rgba(255, 215, 0, 0.2); border-radius: 50%;
+            color: #fff; font-size: 20px; cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .control-btn:hover {
+            background: linear-gradient(145deg, rgba(80, 65, 100), rgba(55, 45, 70));
+            border-color: rgba(255, 215, 0, 0.5); transform: scale(1.1);
+        }
+        .control-btn.active {
+            background: linear-gradient(145deg, #FFD700, #FFA500);
+            color: #1a1a2e; border-color: #FFD700;
+        }
+        .control-btn-text { width: 48px; padding: 0; border-radius: 50%; font-size: 18px; }
+
+        .tooltip {
+            position: fixed; background: rgba(20, 20, 35, 0.95); color: #FFD700;
+            padding: 8px 16px; border-radius: 8px; font-size: 14px; pointer-events: none;
+            z-index: 200; opacity: 0; transform: translateY(10px); transition: all 0.2s;
+        }
+        .tooltip.visible { opacity: 1; transform: translateY(0); }
+
+        .loading {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0a0a14; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 1000;
+            transition: opacity 0.6s;
+        }
+        .loading.hidden { opacity: 0; pointer-events: none; }
+        .loading-spinner {
+            width: 60px; height: 60px; border: 4px solid rgba(255, 215, 0, 0.2);
+            border-top-color: #FFD700; border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        .loading p { color: #FFD700; margin-top: 20px; font-size: 16px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .hint-text {
+            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.5); font-size: 13px; z-index: 50;
+        }
+
+        .minimap {
+            position: fixed; top: 24px; right: 24px; z-index: 100;
+            width: 150px; height: 150px;
+            background: linear-gradient(135deg, rgba(20, 20, 35, 0.9), rgba(30, 25, 45, 0.85));
+            border-radius: 14px; border: 1px solid rgba(255, 215, 0, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+        }
+        .minimap canvas {
+            width: 100%; height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading" id="loading">
+        <div class="loading-spinner"></div>
+        <p>正在加载动物园...</p>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <div class="title-bar">
+        <h1>动物园数字孪生系统</h1>
+        <p>点击动物查看详情 · 拖拽旋转视角</p>
+    </div>
+
+    <div class="info-panel" id="info-panel">
+        <div class="info-panel-header">
+            <h2 id="animal-name">动物名称</h2>
+            <button class="close-btn" onclick="ZooApp.closeInfoPanel()">×</button>
+        </div>
+        <div class="info-panel-content">
+            <div class="animal-image" id="animal-image"></div>
+            <div class="info-item">
+                <label>学名</label>
+                <span id="animal-scientific">Panthera leo</span>
+            </div>
+            <div class="info-item">
+                <label>栖息地</label>
+                <span id="animal-habitat">非洲草原</span>
+            </div>
+            <div class="info-item">
+                <label>介绍</label>
+                <span id="animal-description">非洲狮是大型猫科动物，被誉为"丛林之王"。</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="control-panel">
+        <div class="control-item">
+            <button class="control-btn active" id="view-perspective" title="透视视角" onclick="ZooApp.switchView('perspective')">👁️</button>
+            <span class="control-label" data-lbl="perspective">透视视角</span>
+        </div>
+        <div class="control-item">
+            <button class="control-btn" id="view-bird" title="鸟瞰视角" onclick="ZooApp.switchView('bird')">🕊️</button>
+            <span class="control-label" data-lbl="bird">鸟瞰视角</span>
+        </div>
+        <div class="control-item">
+            <button class="control-btn" id="day-night-toggle" title="昼夜切换" onclick="ZooApp.toggleDayNight()">🌙</button>
+            <span class="control-label" data-lbl="daynight">昼夜切换</span>
+        </div>
+        <div class="control-item">
+            <button class="control-btn" id="weather-toggle" title="天气切换" onclick="ZooApp.toggleWeather()">☀️</button>
+            <span class="control-label" data-lbl="weather">天气切换</span>
+        </div>
+        <div class="control-item">
+            <button class="control-btn control-btn-text" title="重置视角" onclick="ZooApp.resetCamera()">⟳</button>
+            <span class="control-label" data-lbl="reset">重置视角</span>
+        </div>
+        <div class="control-item">
+            <button class="control-btn" id="lang-toggle" title="语言切换" onclick="ZooApp.toggleLanguage()">EN</button>
+            <span class="control-label" data-lbl="lang">语言切换</span>
+        </div>
+    </div>
+
+    <div class="minimap" id="minimap">
+        <canvas id="minimap-canvas" width="150" height="150"></canvas>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+    <div class="hint-text">左键拖拽旋转 · 右键拖拽平移 · 滚轮缩放</div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "./three.js-r179/build/three.module.js",
+            "three/addons/": "./three.js-r179/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

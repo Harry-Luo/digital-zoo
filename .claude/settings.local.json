@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fsck *)",
+      "Bash(grep -ral \"动物园\" .git/lost-found/other/)",
+      "Bash(grep -ral \"import map\" .git/lost-found/other/)",
+      "Bash(grep -ral \"ZOO_CONFIG\" .git/lost-found/other/)",
+      "Bash(mkdir -p js models pictures .claude)",
+      "Bash(cp .git/lost-found/other/4bdd062fe3241757b6a24e7a89713da917058d2b index.html)",
+      "Bash(cp .git/lost-found/other/13088fb1bcab8ba8860fedac7222bd5b94c34024 js/main.js)",
+      "Bash(cp .git/lost-found/other/b21950d2ffe2d4c444dd18cbcc0504ad57d8c129 js/config.js)",
+      "Bash(cp .git/lost-found/other/3e4e9d130991f9b6284e5aa424246f79290ad6dd js/language.js)",
+      "Bash(cp .git/lost-found/other/b33d018ef0a08eb8010f3e94ae7af31672d45b50 package.json)",
+      "Bash(cp .git/lost-found/other/496a0fcabd9dfa7c23993b9d826a08536b4c34c7 .claude/settings.local.json)",
+      "Bash(node -e ' *)",
+      "Bash(npm install *)",
+      "Bash(mkdir -p models pictures)",
+      "Bash(unzip -p \"动物园源代码.docx\" word/document.xml)"
+    ]
+  }
+}
